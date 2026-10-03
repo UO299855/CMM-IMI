@@ -26,8 +26,10 @@ class Exercise2:
     
             # Keep looping as long as there are vertices in the queue
             # Save the order of the vertices we visit
-            stack = self._loop_over_queue(queue, visited, importance_matrix, reaching_edges)
-            
+            stack = self._loop_over_queue(queue, visited, reaching_edges)
+
+            ## Assign importance to each edge based on how many times it is used
+            self._loop_over_stack(stack, reaching_edges, importance_matrix)
 
             # We flatten the list of reaching edges and sort them by importance,
             # returning the top firewallN edges
@@ -49,28 +51,49 @@ class Exercise2:
             reverse=True)
         return candidate_edges
 
-    def _loop_over_stack(self,stack):
-        pass
+    def _loop_over_stack(self,stack,reaching_edges, importance_matrix):
+        """
+        Assigns importance to each edge based on how many times it is used
+        in the shortest paths from the start vertex to all other vertices.
+        """
+        n = len(self.graph.vertices)
+        node_weight = [0 for _ in range(n)]
+        while(stack):
+            current = stack.pop()
+            for edge in reaching_edges[current]:
+               if edge is not None:
+                parent = edge[0]
 
-    def _loop_over_queue(self, queue, visited, importance_matrix, reaching_edges):
+                # The parent absorbs the weight of the current node,
+                # which represents the number of shortest paths that pass through it
+                # in order to propagate it to its own parent in the next iteration of the loop.
+                node_weight[parent] += 1 + node_weight[current]
+
+                # The importance of the edge from parent to current is incremented by 1
+                # (because of this very edge [parent, current])
+                # plus the accumulated weight of the current node.
+                importance_matrix[parent][current] += 1 + node_weight[current]
+                
+
+    def _loop_over_queue(self, queue, visited, reaching_edges):
         """
-        Keep looping as long as there are vertices in the queue
+        Visits vertices as the fire would
+        Keeps looping as long as there are vertices in the queue
         """
+        stack = []
         n = len(self.graph.vertices)
         while queue:
             current = queue.popleft()
+            stack.append(current)
             for i in range(n):
                 # If this is a minimally soon visit
                 if self.graph.adj_matrix[current][i] and visited[i] >= visited[current] + 1:
+                    reaching_edges[i].append([current, i])
                     # If the vertex hasn't been visited yet
                     if visited[i] == n+1:
                         queue.append(i)
                         visited[i] = visited[current] + 1
-                    # Add importance to this new edge
-                    importance_matrix[current][i] += 1
-                    reaching_edges[i].append([current, i])
-                    # Recursively add importance to all edges leading to the current vertex
-                    self._recursive_importance_update(importance_matrix, reaching_edges, current)
+        return stack
 
     def _recursive_importance_update(self, importance_matrix, reaching_edges, current):
         for edge in reaching_edges[current]:
