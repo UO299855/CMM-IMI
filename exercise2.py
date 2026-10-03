@@ -109,7 +109,7 @@ def main():
 
     graph = Graph(directed=True)
     graph.load_from_file(filename)
-    graph.display()
+    # graph.display()
     exercise2 = Exercise2()
     print(exercise2.exercise2(graph, start, firewallN))
     pass
