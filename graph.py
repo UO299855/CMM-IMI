@@ -33,6 +33,21 @@ class Graph:
             self.adj_matrix.append(new_adj_row)
             self.weight_matrix.append(new_weight_row)
 
+    def set_firewall(self, u, v):
+        """
+        Sets a firewall between two given nodes
+        """
+        if u in self.vertex_map and v in self.vertex_map:
+            i = self.vertex_map[u]
+            j = self.vertex_map[v]
+            # Remove the edge by setting adjacency to False and weight to infinity
+            self.adj_matrix[i][j] = False
+            self.adj_matrix[j][i] = False
+            self.weight_matrix[i][j] = float('inf')
+            self.weight_matrix[j][i] = float('inf')
+        else:
+            raise ValueError(f"One or both vertices {u}, {v} do not exist in the graph.")
+
     def add_edge(self, u, v, weight=1.0):
         """Adds an edge between vertex u and vertex v with a given weight."""
         self.add_vertex(u)

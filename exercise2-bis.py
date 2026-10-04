@@ -4,6 +4,16 @@ from collections import deque
 class Exercise2:
 
     def exercise2(self, graph: Graph, start : int, firewallN : int):
+        cuts = []
+        for _ in range(firewallN):
+            best = self._best_edge(graph, start)
+            if best is None: break
+            cuts.append(best)
+            graph.set_firewall(best[0], best[1])
+
+        return cuts
+
+    def _best_edge(self, graph: Graph, start : int):
             self.graph = graph
             n = len(graph.vertices)
             # Initialize visited array with a value larger than any possible distance
@@ -36,11 +46,8 @@ class Exercise2:
             self._matrix_print(importance_matrix)
 
             # We flatten the list of reaching edges and sort them by importance,
-            # returning the top firewallN edges
-            return self._get_candidate_edges(
-                reaching_edges,
-                importance_matrix,
-                visited)[:firewallN]
+            # returning the top edge
+            return self._get_candidate_edges(reaching_edges, importance_matrix, visited)[0]
 
 
     def _get_candidate_edges(self, reaching_edges, importance_matrix, visited):
@@ -133,7 +140,7 @@ class Exercise2:
 
 def main():
     start = 0
-    firewallN = 2
+    firewallN = 1
     filename = "graph_test2.txt"
     # filename = "graph_007_probs.txt"
 
