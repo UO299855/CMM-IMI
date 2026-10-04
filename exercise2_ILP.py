@@ -86,14 +86,12 @@ def resolver_exacto_ilp(graph, q, k):
     return zonas_salvadas, estrategia_bomberos
 
 
-def main():
-    filename = "graph_test.txt"
-    filename = "graph_007_probs.txt"
+def main(filename):
 
     graph = Graph(directed=True)
     graph.load_from_file(filename)
 
-    resultado = resolver_exacto_ilp(graph, q=0, k=1)
+    resultado = resolver_exacto_ilp(graph, q=1, k=2)
     
     if resultado[0] is not None:
         zonas_salvadas, estrategia = resultado
@@ -106,4 +104,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # for i in [3,4,5,7,8,10]:
+    for i in [7]:
+        print(f"\n Grafo {i:03d}:")
+        main(f"graph_{i:03d}_probs.txt")
+        print()
