@@ -16,7 +16,8 @@ class Exercise2:
         while newly_burnt:
             cuts = []
             self.burnt_set.update(newly_burnt)
-            for _ in range(firewallN):
+            for cuts_done in range(firewallN):
+                self.remaining_firewalls = firewallN - cuts_done
                 best = self._best_edge(newly_burnt)
                 if best is None: break
                 cuts.append(best)
@@ -59,7 +60,7 @@ class Exercise2:
             stack = self._loop_over_queue(queue, visited, reaching_edges, num_paths_to_node)
 
             ## Assign importance to each edge based on how many times it is used
-            self._loop_over_stack(stack, reaching_edges, importance_matrix, num_paths_to_node)
+            self._loop_over_stack(stack, reaching_edges, importance_matrix, num_paths_to_node, visited)
 
 
             if self.verbose_process:
@@ -102,12 +103,16 @@ class Exercise2:
                 -round(importance_matrix[edge[0]][edge[1]] +
                 importance_matrix[edge[1]][edge[0]], 9),
                 # Second criterion: min(visited[i], visited[j])
-                min(visited[edge[0]], visited[edge[1]])
+                min(visited[edge[0]], visited[edge[1]]),
+                # Makes ties not arbitrary, but consistent across runs, as stated by the exercise instructions
+                # Without this, the order of the edges in the list would be different accross different
+                # python implementations. To ensure the reproductibility of the results across machines, we sort by the edge itself as a tie-breaker.
+                tuple(edge)
             )
         )
         return candidate_edges
 
-    def _loop_over_stack(self,stack,reaching_edges, importance_matrix, num_paths_to_node):
+    def _loop_over_stack(self,stack,reaching_edges, importance_matrix, num_paths_to_node, visited):
         """
         Assigns importance to each edge based on how many times it is used
         in the shortest paths from the start vertex to all other vertices.
@@ -118,8 +123,11 @@ class Exercise2:
             current = stack.pop()
             for edge in reaching_edges[current]:
                if edge is not None:
-                parent = edge[0]
+                # Filter by danger that we can actually defend from
+                if visited[current] == 1 and num_paths_to_node[current] > self.remaining_firewalls:
+                    continue
 
+                parent = edge[0]
                 # The parent absorbs the weight of the current node,
                 # which represents the ratio of shortest paths that pass through it
                 # in order to propagate it to its own parent in the next iteration of the loop.
@@ -227,4 +235,4 @@ def main_try_config():
 
 if __name__ == "__main__":
     main()
-    
+    # main_try_config()
