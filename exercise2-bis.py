@@ -165,7 +165,7 @@ class Exercise2:
                 importance_matrix[edge[0]][edge[1]] += 1
                 self._recursive_importance_update(importance_matrix, reaching_edges, edge[0])
 
-    def try_config(self, graph: Graph, start : int, firewallN : int, firewalls : list[list[list[int]]]):
+    def try_config(self, graph: Graph, start : int, firewallN : int, firewalls : list[list[tuple[int,int]]]):
         """
         Tries a configuration of firewalls and returns the number of burnt vertices.
         Checks if the given configuration of firewalls is valid and applies them in order, simulating the fire spread.
@@ -193,26 +193,23 @@ class Exercise2:
 
         return len(self.burnt_set)
 
-def main(filename, start, firewallN):    
-
-    graph = Graph(directed=True)
-    graph.load_from_file(filename)
-    # graph.display()
-    exercise2 = Exercise2()
-    exercise2.exercise2(graph, start, firewallN)
-    pass
-
-def main_try_config(filename, start, firewallN, firewalls):
-    graph = Graph(directed=True)
-    graph.load_from_file(filename)
-    # graph.display()
-    exercise2 = Exercise2()
-    exercise2.try_config(graph, start, firewallN, firewalls)
-
-if __name__ == "__main__":
+def main():   
     start = 1
     firewallN = 2
+    for i in [3,4,5,7,8,10]:
+        print()
+        print(f"\nGraph {i:03d}:")
+        filename = f"graph_{i:03d}_probs.txt"
+        graph = Graph(directed=True)
+        graph.load_from_file(filename)
+        # graph.display()
+        exercise2 = Exercise2()
+        exercise2.exercise2(graph, start, firewallN)
+
+def main_try_config():
     filename = "graph_007_probs.txt"
+    start = 1
+    firewallN = 2
     firewalls = [
         [(1, 19), (15, 12)],
         [(14, 0), (15, 4)],
@@ -222,8 +219,12 @@ if __name__ == "__main__":
         [(1, 15), (12, 4)],
         [(13, 18)]
     ]
-    main_try_config(filename, start, firewallN, firewalls)
-    # for i in [3,4,5,7,8,10]:
-    #     print(f"\nGraph {i:03d}:")
-    #     main(f"graph_{i:03d}_probs.txt", start, firewallN)
-    #     print()
+    graph = Graph(directed=True)
+    graph.load_from_file(filename)
+    # graph.display()
+    exercise2 = Exercise2()
+    exercise2.try_config(graph, start, firewallN, firewalls)
+
+if __name__ == "__main__":
+    main()
+    
