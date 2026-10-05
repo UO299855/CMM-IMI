@@ -104,8 +104,7 @@ def main(filename):
 
 
 if __name__ == "__main__":
-    # for i in [3,4,5,7,8,10]:
-    for i in [7]:
+    for i in [3,4,5,7,8,10]:
         print(f"\n Grafo {i:03d}:")
         main(f"graph_{i:03d}_probs.txt")
         print()

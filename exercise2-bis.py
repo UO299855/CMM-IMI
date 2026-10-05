@@ -3,11 +3,14 @@ from collections import deque
 
 class Exercise2:
 
-    def exercise2(self, graph: Graph, start : int, firewallN : int, verbose : bool = False):
+    def __init__(self, verbose_process = False, verbose_output = True):
+        self.verbose_process = verbose_process
+        self.verbose_output = verbose_output
+
+    def exercise2(self, graph: Graph, start : int, firewallN : int):
         self.graph = graph
         self.burnt_set = set()
-        self.verbose = verbose
-    
+            
         total_cuts = []
         newly_burnt = set([start])
         while newly_burnt:
@@ -21,13 +24,14 @@ class Exercise2:
             newly_burnt = self._fire_spread()
             total_cuts.append(cuts)
 
-        if self.verbose:
+        if self.verbose_output:
             self._print_results(total_cuts, self.burnt_set)
 
         return total_cuts, self.burnt_set
 
     def _print_results(self, total_cuts, burnt_set):
-        print("Burnt vertices:", sorted(burnt_set))
+        print(f"Burnt vertices ({len(burnt_set)}):", sorted(burnt_set))
+        print(f"Saved {len(self.graph.vertices) - len(burnt_set)} vertices")
         print("Firewall cuts made:")
         for i, cuts in enumerate(total_cuts):
             print(f"  Step {i+1}: {cuts}")
@@ -35,7 +39,9 @@ class Exercise2:
     def _best_edge(self, newly_burnt : set[int]):
             n = len(self.graph.vertices)
             # Initialize visited array with a value larger than any possible distance
-            visited : list[int] = [0 if i  in self.burnt_set else n+1 for i in range(n)]
+            visited : list[int] = [n+1] * n
+            for i in self.burnt_set:
+                visited[i] = 0
     
             # Initial variable setup
             importance_matrix = [[0 for _ in range(n)] for _ in range(n)]
@@ -43,16 +49,20 @@ class Exercise2:
                         
             # Initial queue setup
             queue  = deque(newly_burnt)
-            most_distant_set = set()
+            # Counts the number of shortest paths to each node from the start node(s)
+            num_paths_to_node = [0] * n
+            for i in newly_burnt:
+                num_paths_to_node[i] = 1
 
             # Keep looping as long as there are vertices in the queue
             # Save the order of the vertices we visit
-            stack = self._loop_over_queue(queue, visited, reaching_edges, most_distant_set)
+            stack = self._loop_over_queue(queue, visited, reaching_edges, num_paths_to_node)
 
             ## Assign importance to each edge based on how many times it is used
-            self._loop_over_stack(stack, reaching_edges, importance_matrix, most_distant_set)
+            self._loop_over_stack(stack, reaching_edges, importance_matrix, num_paths_to_node)
 
-            if self.verbose:
+
+            if self.verbose_process:
                 self._matrix_print(importance_matrix)
                 print()
 
@@ -89,21 +99,21 @@ class Exercise2:
             key=lambda edge: (
                 # First criterion: importance[i][j] + importance[j][i]
                 # (the sum of the importance of both directions)
-                -(importance_matrix[edge[0]][edge[1]] +
-                importance_matrix[edge[1]][edge[0]]),
+                -round(importance_matrix[edge[0]][edge[1]] +
+                importance_matrix[edge[1]][edge[0]], 9),
                 # Second criterion: min(visited[i], visited[j])
                 min(visited[edge[0]], visited[edge[1]])
             )
         )
         return candidate_edges
 
-    def _loop_over_stack(self,stack,reaching_edges, importance_matrix, most_distant_set):
+    def _loop_over_stack(self,stack,reaching_edges, importance_matrix, num_paths_to_node):
         """
         Assigns importance to each edge based on how many times it is used
         in the shortest paths from the start vertex to all other vertices.
         """
-        n = len(self.graph.vertices)
-        node_weight = [1 if i in most_distant_set else 0 for i in range(n)]
+        n = len(num_paths_to_node)
+        delta = [0.0] * n
         while(stack):
             current = stack.pop()
             for edge in reaching_edges[current]:
@@ -111,24 +121,24 @@ class Exercise2:
                 parent = edge[0]
 
                 # The parent absorbs the weight of the current node,
-                # which represents the number of shortest paths that pass through it
+                # which represents the ratio of shortest paths that pass through it
                 # in order to propagate it to its own parent in the next iteration of the loop.
-                node_weight[parent] += node_weight[current]
+                c = num_paths_to_node[parent] / num_paths_to_node[current] * (1 + delta[current])
+                delta[parent] += c
 
-                # The importance of the edge from parent to current is incremented by 1
-                # (because of this very edge [parent, current])
-                # plus the accumulated weight of the current node.
-                importance_matrix[parent][current] += node_weight[current] * len(reaching_edges[parent])
+                # The importance of the edge from parent to current is incremented by
+                # the same ratio
+                importance_matrix[parent][current] += c
 
     def _matrix_print(self, matrix):
         """
         Prints a matrix in a readable format.
         """
         for row in matrix:
-            print(" ".join(f"{val:>5}" for val in row))
+            print(" ".join(f"{val:>6.2f}" for val in row))
                 
 
-    def _loop_over_queue(self, queue, visited, reaching_edges, most_distant_set):
+    def _loop_over_queue(self, queue, visited, reaching_edges, num_paths_to_node):
         """
         Visits vertices as the fire would
         Keeps looping as long as there are vertices in the queue
@@ -138,18 +148,15 @@ class Exercise2:
         while queue:
             current = queue.popleft()
             stack.append(current)
-            no_new_visits = True
             for i in range(n):
                 # If this is a minimally soon visit
                 if self.graph.adj_matrix[current][i] and visited[i] >= visited[current] + 1:
-                    no_new_visits = False
                     reaching_edges[i].append([current, i])
+                    num_paths_to_node[i] += num_paths_to_node[current]
                     # If the vertex hasn't been visited yet
                     if visited[i] == n+1:
                         queue.append(i)
                         visited[i] = visited[current] + 1
-            if no_new_visits:
-                most_distant_set.add(current)
         return stack
 
     def _recursive_importance_update(self, importance_matrix, reaching_edges, current):
@@ -158,18 +165,65 @@ class Exercise2:
                 importance_matrix[edge[0]][edge[1]] += 1
                 self._recursive_importance_update(importance_matrix, reaching_edges, edge[0])
 
-def main():
-    start = 0
-    firewallN = 2
-    filename = "graph_test2.txt"
-    # filename = "graph_007_probs.txt"
+    def try_config(self, graph: Graph, start : int, firewallN : int, firewalls : list[list[list[int]]]):
+        """
+        Tries a configuration of firewalls and returns the number of burnt vertices.
+        Checks if the given configuration of firewalls is valid and applies them in order, simulating the fire spread.
+        """
+        self.graph = graph
+        self.burnt_set = set()
+        newly_burnt = set([start])
+        iter = 0
+        actual_firewalls = []
+        while newly_burnt:
+            self.burnt_set.update(newly_burnt)  
+            actual_this_iter = []
+            if iter < len(firewalls):
+                cuts = firewalls[iter]
+                for cut_index in range(min(len(cuts), firewallN)):
+                    cut = cuts[cut_index]
+                    self.graph.set_firewall(cut[0], cut[1])
+                    actual_this_iter.append(cut)
+            actual_firewalls.append(actual_this_iter)
+            newly_burnt = self._fire_spread()
+            iter = iter + 1
+
+        if self.verbose_output:
+            self._print_results(actual_firewalls, self.burnt_set)
+
+        return len(self.burnt_set)
+
+def main(filename, start, firewallN):    
 
     graph = Graph(directed=True)
     graph.load_from_file(filename)
     # graph.display()
     exercise2 = Exercise2()
-    exercise2.exercise2(graph, start, firewallN, verbose=True)
+    exercise2.exercise2(graph, start, firewallN)
     pass
 
+def main_try_config(filename, start, firewallN, firewalls):
+    graph = Graph(directed=True)
+    graph.load_from_file(filename)
+    # graph.display()
+    exercise2 = Exercise2()
+    exercise2.try_config(graph, start, firewallN, firewalls)
+
 if __name__ == "__main__":
-    main()
+    start = 1
+    firewallN = 2
+    filename = "graph_007_probs.txt"
+    firewalls = [
+        [(1, 19), (15, 12)],
+        [(14, 0), (15, 4)],
+        [(19, 12), (19, 18)],
+        [(9, 8), (9, 18)],
+        [(11, 8)],
+        [(1, 15), (12, 4)],
+        [(13, 18)]
+    ]
+    main_try_config(filename, start, firewallN, firewalls)
+    # for i in [3,4,5,7,8,10]:
+    #     print(f"\nGraph {i:03d}:")
+    #     main(f"graph_{i:03d}_probs.txt", start, firewallN)
+    #     print()
