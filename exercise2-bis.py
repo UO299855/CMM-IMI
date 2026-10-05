@@ -3,36 +3,46 @@ from collections import deque
 
 class Exercise2:
 
-    def exercise2(self, graph: Graph, start : int, firewallN : int):
-        cuts = []
-        for _ in range(firewallN):
-            best = self._best_edge(graph, start)
-            if best is None: break
-            cuts.append(best)
-            graph.set_firewall(best[0], best[1])
+    def exercise2(self, graph: Graph, start : int, firewallN : int, verbose : bool = False):
+        self.graph = graph
+        self.burnt_set = set()
+        self.verbose = verbose
+    
+        total_cuts = []
+        newly_burnt = set([start])
+        while newly_burnt:
+            cuts = []
+            self.burnt_set.update(newly_burnt)
+            for _ in range(firewallN):
+                best = self._best_edge(newly_burnt)
+                if best is None: break
+                cuts.append(best)
+                self.graph.set_firewall(best[0], best[1])
+            newly_burnt = self._fire_spread()
+            total_cuts.append(cuts)
 
-        return cuts
+        if self.verbose:
+            self._print_results(total_cuts, self.burnt_set)
 
-    def _best_edge(self, graph: Graph, start : int):
-            self.graph = graph
-            n = len(graph.vertices)
+        return total_cuts, self.burnt_set
+
+    def _print_results(self, total_cuts, burnt_set):
+        print("Burnt vertices:", sorted(burnt_set))
+        print("Firewall cuts made:")
+        for i, cuts in enumerate(total_cuts):
+            print(f"  Step {i+1}: {cuts}")
+
+    def _best_edge(self, newly_burnt : set[int]):
+            n = len(self.graph.vertices)
             # Initialize visited array with a value larger than any possible distance
-            visited : list[int] = [n+1 for _ in range(n)]
-            visited[start] = 0
+            visited : list[int] = [0 if i  in self.burnt_set else n+1 for i in range(n)]
     
             # Initial variable setup
             importance_matrix = [[0 for _ in range(n)] for _ in range(n)]
-            reaching_edges = [[] for _ in range(n)]
-            reaching_edges[start] = [None]
-            
+            reaching_edges = [[None] if i in self.burnt_set else [] for i in range(n)]
+                        
             # Initial queue setup
-            queue  = deque()
-            for i in range(n):
-                if graph.adj_matrix[start][i]:
-                    queue.append(i)
-                    visited[i] = 1
-                    reaching_edges[i].append([start, i])
-
+            queue  = deque(newly_burnt)
             most_distant_set = set()
 
             # Keep looping as long as there are vertices in the queue
@@ -42,12 +52,22 @@ class Exercise2:
             ## Assign importance to each edge based on how many times it is used
             self._loop_over_stack(stack, reaching_edges, importance_matrix, most_distant_set)
 
-            # TODO
-            self._matrix_print(importance_matrix)
+            if self.verbose:
+                self._matrix_print(importance_matrix)
+                print()
 
             # We flatten the list of reaching edges and sort them by importance,
             # returning the top edge
-            return self._get_candidate_edges(reaching_edges, importance_matrix, visited)[0]
+            candidates = self._get_candidate_edges(reaching_edges, importance_matrix, visited)
+            return candidates[0] if candidates else None
+
+    def _fire_spread(self):
+        newly_burnt = set()
+        for burning in self.burnt_set:
+            for i in range(len(self.graph.vertices)):
+                if self.graph.adj_matrix[burning][i] and i not in self.burnt_set:
+                    newly_burnt.add(i)
+        return newly_burnt
 
 
     def _get_candidate_edges(self, reaching_edges, importance_matrix, visited):
@@ -140,7 +160,7 @@ class Exercise2:
 
 def main():
     start = 0
-    firewallN = 1
+    firewallN = 2
     filename = "graph_test2.txt"
     # filename = "graph_007_probs.txt"
 
@@ -148,7 +168,7 @@ def main():
     graph.load_from_file(filename)
     # graph.display()
     exercise2 = Exercise2()
-    print(exercise2.exercise2(graph, start, firewallN))
+    exercise2.exercise2(graph, start, firewallN, verbose=True)
     pass
 
 if __name__ == "__main__":
