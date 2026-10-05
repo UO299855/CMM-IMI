@@ -5,7 +5,7 @@ class Exercise2:
 
     def exercise2(self, graph: Graph, start : int, firewallN : int):
             self.graph = graph
-            n = len(graph.vertices)
+            n = len(graph.adj)
             # Initialize visited array with a value larger than any possible distance
             visited : list[int] = [n+1 for _ in range(n)]
             visited[start] = 0
@@ -91,13 +91,13 @@ class Exercise2:
         Keeps looping as long as there are vertices in the queue
         """
         stack = []
-        n = len(self.graph.vertices)
+        n = len(self.graph.adj)
         while queue:
             current = queue.popleft()
             stack.append(current)
-            for i in range(n):
+            for i in self.graph.adj[current]:
                 # If this is a minimally soon visit
-                if self.graph.adj_matrix[current][i] and visited[i] >= visited[current] + 1:
+                if visited[i] >= visited[current] + 1:
                     reaching_edges[i].append([current, i])
                     # If the vertex hasn't been visited yet
                     if visited[i] == n+1:

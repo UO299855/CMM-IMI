@@ -32,13 +32,13 @@ class Exercise2:
 
     def _print_results(self, total_cuts, burnt_set):
         print(f"Burnt vertices ({len(burnt_set)}):", sorted(burnt_set))
-        print(f"Saved {len(self.graph.vertices) - len(burnt_set)} vertices")
+        print(f"Saved {len(self.graph.adj) - len(burnt_set)} vertices")
         print("Firewall cuts made:")
         for i, cuts in enumerate(total_cuts):
             print(f"  Step {i+1}: {cuts}")
 
     def _best_edge(self, newly_burnt : set[int]):
-            n = len(self.graph.vertices)
+            n = len(self.graph.adj)
             # Initialize visited array with a value larger than any possible distance
             visited : list[int] = [n+1] * n
             for i in self.burnt_set:
@@ -75,8 +75,8 @@ class Exercise2:
     def _fire_spread(self):
         newly_burnt = set()
         for burning in self.burnt_set:
-            for i in range(len(self.graph.vertices)):
-                if self.graph.adj_matrix[burning][i] and i not in self.burnt_set:
+            for i in self.graph.adj[burning]:
+                if i not in self.burnt_set:
                     newly_burnt.add(i)
         return newly_burnt
 
@@ -152,13 +152,13 @@ class Exercise2:
         Keeps looping as long as there are vertices in the queue
         """
         stack = []
-        n = len(self.graph.vertices)
+        n = len(self.graph.adj)
         while queue:
             current = queue.popleft()
             stack.append(current)
-            for i in range(n):
+            for i in self.graph.adj[current]:
                 # If this is a minimally soon visit
-                if self.graph.adj_matrix[current][i] and visited[i] >= visited[current] + 1:
+                if visited[i] >= visited[current] + 1:
                     reaching_edges[i].append([current, i])
                     num_paths_to_node[i] += num_paths_to_node[current]
                     # If the vertex hasn't been visited yet
