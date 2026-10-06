@@ -298,6 +298,10 @@ class Exercise3:
 
 
 def main():
+    """
+    We set a fixed seed and for each graph we run the heutistic with q = 1, k= 1.
+    """
+    random.seed(1926)
     start = 1
     firewall_n = 1
     BASE_DIR = Path(__file__).resolve().parent
@@ -338,7 +342,6 @@ def main_try_config():
     exercise3.try_config(graph, start, firewallN, firewalls)
 
 
-if __name__ == "__main__":
-    random.seed(42)  # Set a fixed seed for reproducibility
+if __name__ == "__main__":    
     main()
     # main_try_config()

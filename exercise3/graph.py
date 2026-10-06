@@ -33,6 +33,12 @@ class Graph:
         else:
             raise ValueError("Invalid firewall")
 
+    def clone(self):
+            new_graph = Graph(directed=self.directed)
+            new_graph.directed = self.directed
+            # Shallow copy of the adjacency list to ensure we don't modify the original graph
+            new_graph.adj = {k: v.copy() for k, v in self.adj.items()}
+            return new_graph
 
     def load_from_file(self, filename):
         """
