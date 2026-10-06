@@ -1,0 +1,36 @@
+
+
+Graph 003:
+Best starting node: 13
+Mean burnt nodes: 7.92
+Std: 2.80
+
+
+Graph 004:
+Best starting node: 1
+Mean burnt nodes: 5.68
+Std: 2.97
+
+
+Graph 005:
+Best starting node: 8
+Mean burnt nodes: 7.22
+Std: 3.39
+
+
+Graph 007:
+Best starting node: 19
+Mean burnt nodes: 6.63
+Std: 2.39
+
+
+Graph 008:
+Best starting node: 0
+Mean burnt nodes: 7.62
+Std: 3.05
+
+
+Graph 010:
+Best starting node: 3
+Mean burnt nodes: 9.61
+Std: 3.42
