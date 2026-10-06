@@ -101,11 +101,14 @@ class Exercise2ILP:
         return burnt_nodes, saved_nodes, cuts
 
     def _print_results(self, burnt_nodes, saved_nodes, cuts):
+        if not burnt_nodes or not saved_nodes:
+            print("No results to display.")
+            return
         print(f"Burnt nodes ({len(burnt_nodes)}):", burnt_nodes)
         print(f"Saved {len(saved_nodes)} nodes:", saved_nodes)
         print("Firewall cuts made:")
         for t, cuts_at_t in cuts.items():
-            print(f"  Step {t+1}: {cuts_at_t}")
+            print(f"  Step {t}: {cuts_at_t}")
 
 
 
