@@ -18,11 +18,7 @@ def _run_single_sim(args):
     return len(burnt_set)
 
 class MonteCarloSimulation:
-    def simulate_fire(self, file_name, n_simulations: int, fire_start: int, firewall_n: int):
-        base_graph = Graph(directed=True)
-
-        # Only read from disk once for better performance
-        base_graph.load_from_file(file_name)
+    def simulate_fire(self, base_graph : Graph, n_simulations: int, fire_start: int, firewall_n: int):
         
         # preparing arguments for each simulation
         args = [(base_graph, fire_start, firewall_n) for _ in range(n_simulations)]
@@ -49,7 +45,11 @@ def main():
         print()
         print(f"\nGraph {i:03d}:")
         montecarlo = MonteCarloSimulation()
-        mean, std = montecarlo.simulate_fire(filename, simulation_n, fire_start=1, firewall_n=2)
+
+        base_graph = Graph(directed=True)
+        base_graph.load_from_file(filename)
+
+        mean, std = montecarlo.simulate_fire(base_graph, simulation_n, fire_start=1, firewall_n=2)
         print(f"Mean burnt nodes: {mean:.2f}\nStd: {std:.2f}")
 
 if __name__ == "__main__":
