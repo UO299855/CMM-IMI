@@ -1,110 +1,125 @@
 import pulp
 from graph import Graph
 
-def resolver_exacto_ilp(graph, q, k):
-    n = len(graph.vertices)
-    T = n - 1  # El fuego se extingue como máximo en n-1 etapas
-    
-    # Declaración del modelo de minimización
-    prob = pulp.LpProblem("Reto2_Bomberos", pulp.LpMinimize)
-    
-    # --- VARIABLES DE DECISIÓN ---
-    # x[i, t]: 1 si la zona i está quemada en la etapa t o antes, 0 en caso contrario
-    x = {}
-    for i in range(n):
-        for t in range(T + 1):
-            x[(i, t)] = pulp.LpVariable(f"x_{i}_{t}", cat='Binary')
-    
-    # y[u, v, t]: 1 si el arco (u, v) ha sido cortado por los bomberos en la etapa t o antes
-    arcos = [(u, v) for u in range(n) for v in range(n) if graph.adj_matrix[u][v]]
-    y = {}
-    for (u, v) in arcos:
-        for t in range(T + 1):
-            y[(u, v, t)] = pulp.LpVariable(f"y_{u}_{v}_{t}", cat='Binary')
-    
-    # --- FUNCIÓN OBJETIVO ---
-    # Minimizar el total de zonas quemadas al final del horizonte temporal
-    prob += pulp.lpSum([x[(i, T)] for i in range(n)]), "zonas_quemadas"
-    
-    # --- RESTRICCIONES ---
-    # 1. Condición inicial: El fuego se inicia únicamente en la zona q en t=0
-    prob += x[(q, 0)] == 1, "inicio_fuego"
-    for i in range(n):
-        if i != q:
-            prob += x[(i, 0)] == 0, f"no_inicio_{i}"
-            
-    # 2. En t=0 no hay cortafuegos colocados
-    for (u, v) in arcos:
-        prob += y[(u, v, 0)] == 0, f"no_cortes_t0_{u}_{v}"
+class Exercise2ILP:
 
-    # 3. Evolución del fuego y actuación por etapas
-    for t in range(1, T + 1):
+    def __init__(self, verbose : bool = False):
+        self.verbose = verbose
+
+    def exact_solve(self,graph : Graph, start, firewall_n):
+        # Define the ILP problem
+        self._problem_variable_definition(graph)
+        self._impose_constraints(graph, start, firewall_n)
         
-        # Límite de actuación: Se pueden poner como máximo k cortafuegos nuevos por etapa
-        nuevos_cortafuegos = pulp.lpSum([
-            y[(u, v, t)] - y[(u, v, t-1)] for (u, v) in arcos
-        ])
-        prob += nuevos_cortafuegos <= k, f"limite_cortes_t{t}"
-        
-        for i in range(n):
-            # Irreversibilidad: Si una zona se quema en t-1, sigue quemada en t
-            prob += x[(i, t)] >= x[(i, t-1)], f"irreversible_quema_{i}_{t}"
-            
-            for j in range(n):
-                if graph.adj_matrix[i][j]:
-                    # Irreversibilidad del cortafuego: un corte permanece en el tiempo
-                    prob += y[(i, j, t)] >= y[(i, j, t-1)], f"irreversible_corte_{i}_{j}_{t}"
+        # Solve the problem using an ILP solver
+        # We disable the solver output messages for cleaner output
+        self.problem.solve(pulp.PULP_CBC_CMD(msg=False))
+
+        # Result retreival
+        burnt_nodes, saved_nodes, cuts = self._get_results(graph)
+        if self.verbose:
+            self._print_results(burnt_nodes, saved_nodes, cuts)
+        return burnt_nodes, saved_nodes, cuts
+
+    
+    def _problem_variable_definition(self, graph : Graph):
+        n = len(graph.adj)
+        # We declare a problem for our solver (minimization problem)
+        self.problem = pulp.LpProblem("Firefighter_Problem", pulp.LpMinimize)
+
+        # We define our decision variables
+        self.burnt_nodes = {}
+        for i in graph.adj:
+            for t in range(n):
+                # Binary variable indicating if node i starts to burn at time t or before
+                self.burnt_nodes[(i, t)] = pulp.LpVariable(f"x_{i}_{t}", cat='Binary')
+
+        self.firewalls = {}
+        for u in graph.adj:
+            for v in graph.adj[u]:
+                for t in range(n):
+                    # Binary variable indicating if edge (u, v) is cut at time t or before
+                    self.firewalls[(u, v, t)] = pulp.LpVariable(f"y_{u}_{v}_{t}", cat='Binary')
+
+        # Objective function: minimize the total number of burnt nodes at the end of the time horizon
+        self.problem += pulp.lpSum([self.burnt_nodes[(i, n-1)] for i in range(n)]), "burnt_nodes"
+
+    def _impose_constraints(self, graph : Graph, start, firewall_n):
+        # The fire starts only at the starting node at time t=0
+        self.problem += self.burnt_nodes[(start, 0)] == 1, "fire_starts"        
+        for i in graph.adj:
+            if i != start:
+                self.problem += self.burnt_nodes[(i, 0)] == 0, f"not_starting_in_{i}"
                     
-                    # Propagación: Si 'i' arde en t-1 y el arco (i, j) NO está cortado en t, 'j' arde en t
-                    prob += x[(j, t)] >= x[(i, t-1)] - y[(i, j, t)], f"propagacion_{i}_{j}_{t}"
-    
-    # --- RESOLUCIÓN ---
-    # Se desactiva la salida de mensajes del solver
-    prob.solve(pulp.PULP_CBC_CMD(msg=0))
-    
-    # --- VERIFICACIÓN DE FACTIBILIDAD ---
-    if prob.status != pulp.LpStatusOptimal:
-        print(f"⚠️  Solver no encontró óptimo. Status: {pulp.LpStatus[prob.status]}")
-        return None, None
-    
-    # --- EXTRACCIÓN DE RESULTADOS ---
-    zonas_quemadas = sum(1 for i in range(n) if pulp.value(x[(i, T)]) > 0.5)
-    zonas_salvadas = n - zonas_quemadas
-    
-    estrategia_bomberos = {}
-    for t in range(1, T + 1):
-        cortes_etapa = []
-        for (u, v) in arcos:
-            # Identificamos los cortes que pasaron de 0 a 1 justo en esta etapa
-            val_actual = pulp.value(y[(u, v, t)])
-            val_anterior = pulp.value(y[(u, v, t-1)])
-            if val_actual > 0.5 and val_anterior < 0.5:
-                cortes_etapa.append((u, v))
-        if cortes_etapa:
-            estrategia_bomberos[t] = cortes_etapa
-    
-    return zonas_salvadas, estrategia_bomberos
+        # No firewalls can be set at time t=0
+        for i in graph.adj:
+            for j in graph.adj[i]:
+                self.problem += self.firewalls[(i, j, 0)] == 0, f"no_firewalls_t0_{i}_{j}"
+
+        # We now model the spread of the fire
+        n = len(graph.adj)
+        for t in range(1, n):
+            # We can set at most 'firewall_n' new firewalls per step
+            new_firewalls = pulp.lpSum([
+                self.firewalls[(u, v, t)] - self.firewalls[(u, v, t-1)] for u in graph.adj for v in graph.adj[u]
+            ])
+            self.problem += new_firewalls <= firewall_n, f"limit_firewalls_t{t}"
+
+            for i in graph.adj:
+                # Irreversibility: if a node is burnt at time t-1, it remains burnt at time t
+                self.problem += self.burnt_nodes[(i, t)] >= self.burnt_nodes[(i, t-1)], f"irreversible_burn_{i}_{t}"
+                for j in graph.adj[i]:
+                    # Irreversibility of the firewall: a cut remains in time
+                    self.problem += self.firewalls[(i, j, t)] >= self.firewalls[(i, j, t-1)], f"irreversible_firewall_{i}_{j}_{t}"
+
+                    # Propagation of the fire: if 'i' is burning at time t-1 and
+                    # the edge (i, j) is NOT cut at time t, then 'j' burns at time t
+                    self.problem += self.burnt_nodes[(j, t)] >= self.burnt_nodes[(i, t-1)] - self.firewalls[(i, j, t)], f"propagation_{i}_{j}_{t}"
+
+    def _get_results(self, graph : Graph):
+        if self.problem.status != pulp.LpStatusOptimal:
+            print(f"The solver could not find an optimal solution. Status: {pulp.LpStatus[self.problem.status]}")
+            return None, None, None
+
+        n = len(graph.adj)
+        are_nodes_burnt = {i: pulp.value(self.burnt_nodes[(i, n-1)]) for i in graph.adj}
+        burnt_nodes = sorted({i for i, burnt in are_nodes_burnt.items() if burnt > 0.5})
+        saved_nodes = sorted({i for i in graph.adj if i not in burnt_nodes})
+
+        cuts = {}
+        for t in range(1, n):
+            cuts_at_t = []
+            for u in graph.adj:
+                for v in graph.adj[u]:
+                    # Check if the edge (u, v) was cut ecxactly at time t
+                    # It was not cut at time t-1 and it is cut at time t
+                    if pulp.value(self.firewalls[(u, v, t)]) > 0.5 and pulp.value(self.firewalls[(u, v, t-1)]) < 0.5:
+                        cuts_at_t.append((u, v))
+            if len(cuts_at_t) > 0:
+                cuts[t] = cuts_at_t
+
+        return burnt_nodes, saved_nodes, cuts
+
+    def _print_results(self, burnt_nodes, saved_nodes, cuts):
+        print(f"Burnt nodes ({len(burnt_nodes)}):", burnt_nodes)
+        print(f"Saved {len(saved_nodes)} nodes:", saved_nodes)
+        print("Firewall cuts made:")
+        for t, cuts_at_t in cuts.items():
+            print(f"  Step {t+1}: {cuts_at_t}")
 
 
-def main(filename):
 
-    graph = Graph(directed=True)
-    graph.load_from_file(filename)
+def main():
+    for i in [3,4,5,7,8,10]:
+        filename = f"graph_{i:03d}_probs.txt"
+        print()
+        print(f"\n Graph {i:03d}:")
+        graph = Graph(directed=True)
+        graph.load_from_file(filename)
 
-    resultado = resolver_exacto_ilp(graph, q=1, k=2)
-    
-    if resultado[0] is not None:
-        zonas_salvadas, estrategia = resultado
-        print(f"✓ Zonas salvadas: {zonas_salvadas}")
-        print(f"✓ Estrategia por etapas:")
-        for t, cortes in estrategia.items():
-            print(f"  Etapa {t}: {cortes}")
-    else:
-        print("✗ No se pudo resolver el problema.")
+        solver = Exercise2ILP(verbose=True)
+        solver.exact_solve(graph, start=1, firewall_n=2)
 
 
 if __name__ == "__main__":
-    for i in [3,4,5,7,8,10]:
-        print(f"\n Grafo {i:03d}:")
-        main(f"graph_{i:03d}_probs.txt")
-        print()
+    main()
