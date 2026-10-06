@@ -1,4 +1,4 @@
-from graph import Graph
+from exercise2.graph import Graph
 from collections import deque
 
 class Exercise2:

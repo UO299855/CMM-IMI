@@ -1,5 +1,7 @@
 from graph import Graph
 from collections import deque
+from pathlib import Path
+
 
 class Exercise2:
 
@@ -204,10 +206,11 @@ class Exercise2:
 def main():   
     start = 1
     firewallN = 2
+    BASE_DIR = Path(__file__).resolve().parent
     for i in [3,4,5,7,8,10]:
         print()
         print(f"\nGraph {i:03d}:")
-        filename = f"graph_{i:03d}_probs.txt"
+        filename = BASE_DIR / f"../graph_{i:03d}_probs.txt"
         graph = Graph(directed=True)
         graph.load_from_file(filename)
         # graph.display()
@@ -215,7 +218,8 @@ def main():
         exercise2.exercise2(graph, start, firewallN)
 
 def main_try_config():
-    filename = "graph_007_probs.txt"
+    BASE_DIR = Path(__file__).resolve().parent
+    filename = BASE_DIR / "../graph_007_probs.txt"
     start = 1
     firewallN = 2
     firewalls = [

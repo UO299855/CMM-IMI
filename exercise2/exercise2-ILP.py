@@ -1,5 +1,6 @@
 import pulp
 from graph import Graph
+from pathlib import Path
 
 class Exercise2ILP:
 
@@ -113,8 +114,9 @@ class Exercise2ILP:
 
 
 def main():
+    BASE_DIR = Path(__file__).resolve().parent
     for i in [3,4,5,7,8,10]:
-        filename = f"graph_{i:03d}_probs.txt"
+        filename = BASE_DIR / f"../graph_{i:03d}_probs.txt"
         print()
         print(f"\n Graph {i:03d}:")
         graph = Graph(directed=True)
