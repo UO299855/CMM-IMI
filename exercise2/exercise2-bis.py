@@ -82,7 +82,7 @@ class Exercise2:
                     newly_burnt_next.add(i)
         return newly_burnt_next
 
-
+ 
     def _get_candidate_edges(self, reaching_edges, importance_matrix, visited):
         """
         Flattens the list of reaching edges and returns a set of unique edges.
