@@ -1,0 +1,37 @@
+Using top 5 nodes based on Brandes' betweenness centrality
+
+
+Graph 003:
+Best starting node: 13
+Mean burnt nodes: 8.21
+Std: 2.88
+
+
+Graph 004:
+Best starting node: 1
+Mean burnt nodes: 5.46
+Std: 2.88
+
+
+Graph 005:
+Best starting node: 8
+Mean burnt nodes: 7.19
+Std: 3.49
+
+
+Graph 007:
+Best starting node: 19
+Mean burnt nodes: 6.57
+Std: 2.41
+
+
+Graph 008:
+Best starting node: 14
+Mean burnt nodes: 7.26
+Std: 2.82
+
+
+Graph 010:
+Best starting node: 3
+Mean burnt nodes: 9.43
+Std: 3.53
